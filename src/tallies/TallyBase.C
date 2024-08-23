@@ -253,6 +253,19 @@ TallyBase::computeSumAndMean()
   }
 }
 
+xt::xtensor<double, 1>
+get_scores_again(const openmc::Tally* tally, const unsigned int& score, openmc::TallyResult result)
+{
+  std::array<size_t, 3> shape = tally->results_shape();
+  xt::xtensor<double, 1> scores = xt::xtensor<double, 1>::from_shape({shape[0]});
+
+  for (size_t i = 0; i < shape[0]; ++i) {
+    scores[i] = *tally->results(i, score, result);
+  }
+
+  return scores;
+}
+
 void
 TallyBase::relaxAndNormalizeTally(unsigned int local_score, const Real & alpha, const Real & norm)
 {
@@ -269,11 +282,11 @@ TallyBase::relaxAndNormalizeTally(unsigned int local_score, const Real & alpha, 
   current_raw = std::abs(norm) < ZERO_TALLY_THRESHOLD
                     ? static_cast<xt::xtensor<double, 1>>(mean_tally * 0.0)
                     : static_cast<xt::xtensor<double, 1>>(mean_tally / norm);
-
-  auto sum_sq = xt::view(_local_tally->results_,
-                         xt::all(),
-                         local_score,
-                         static_cast<int>(openmc::TallyResult::SUM_SQ));
+  auto sum_sq = get_scores_again(_local_tally, local_score, openmc::TallyResult::SUM_SQ);
+  //auto sum_sq = xt::view(_local_tally->results_,
+  //                       xt::all(),
+  //                       local_score,
+  //                       static_cast<int>(openmc::TallyResult::SUM_SQ));
   auto rel_err = _openmc_problem.relativeError(mean_tally, sum_sq, _local_tally->n_realizations_);
   current_raw_std_dev = rel_err * current_raw;
 
@@ -328,8 +341,8 @@ TallyBase::applyTriggersToLocalTally(openmc::Tally * tally)
   if (_tally_trigger)
     for (int score = 0; score < _tally_score.size(); ++score)
       tally->triggers_.push_back({_openmc_problem.triggerMetric((*_tally_trigger)[score]),
-                                  _tally_trigger_threshold[score],
-                                  false,
+                                _tally_trigger_threshold[score],
+                                  //false,
                                   score});
 }
 #endif

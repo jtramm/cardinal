@@ -62,7 +62,7 @@ OpenMCTallyNuclides::setValue()
                                        std::to_string(tally_id));
   try
   {
-    openmc::model::tallies[_tally_index]->set_nuclides(_names);
+    openmc::model::tallies[_tally_index].set_nuclides(_names);
   }
   catch (const std::exception & e)
   {

@@ -21,7 +21,7 @@
 #include "TallyBase.h"
 #include "OpenMCCellAverageProblem.h"
 
-#include "openmc/tallies/filter_cell.h"
+#include "openmc/tallies/filter.h"
 
 class CellTally : public TallyBase
 {
@@ -73,7 +73,9 @@ protected:
   std::map<OpenMCCellAverageProblem::cellInfo, bool> _cell_has_tally;
 
   /// OpenMC mesh filter for this unstructured mesh tally.
-  openmc::CellInstanceFilter * _cell_filter;
+  //openmc::CellInstanceFilter * _cell_filter;
+  openmc::Filter * _cell_filter;
+
 
   /**
    * Whether to check that the [Mesh] volume each cell tally maps to is identical.

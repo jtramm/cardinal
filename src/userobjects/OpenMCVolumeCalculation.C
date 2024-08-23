@@ -122,7 +122,7 @@ OpenMCVolumeCalculation::initializeVolumeCalculation()
   for (const auto & c : cell_to_elem)
   {
     auto index = c.first.first;
-    auto id = openmc::model::cells[index]->id_;
+    auto id = openmc::model::cells[index].id_;
 
     ids.insert(id);
     if (!_index_to_calc_index.count(c.first.first))
@@ -147,7 +147,7 @@ void
 OpenMCVolumeCalculation::cellVolume(const unsigned int & index, Real & volume, Real & std_dev) const
 {
   auto calc_index = _index_to_calc_index.at(index);
-  auto n_instances = openmc::model::cells[index]->n_instances_;
+  auto n_instances = openmc::model::cells[index].n_instances_;
   if (n_instances > 1)
     mooseDoOnce(mooseWarning(
         "OpenMC's stochastic volume calculation cannot individually measure volumes of cell "

@@ -81,6 +81,19 @@ TallyRelativeError::TallyRelativeError(const InputParameters & parameters)
   }
 }
 
+xt::xtensor<double, 1>
+get_scores(const openmc::Tally* tally, const unsigned int& score, openmc::TallyResult result)
+{
+  std::array<size_t, 3> shape = tally->results_shape();
+  xt::xtensor<double, 1> scores = xt::xtensor<double, 1>::from_shape({shape[0]});
+
+  for (size_t i = 0; i < shape[0]; ++i) {
+    scores[i] = *tally->results(i, score, result);
+  }
+
+  return scores;
+}
+
 Real
 TallyRelativeError::getValue() const
 {
@@ -107,9 +120,11 @@ TallyRelativeError::getValue() const
   for (const auto & tally : tallies)
   {
     const auto t = tally->getWrappedTally();
-    auto sum = xt::view(t->results_, xt::all(), _tally_index, static_cast<int>(openmc::TallyResult::SUM));
-    auto sum_sq =
-        xt::view(t->results_, xt::all(), _tally_index, static_cast<int>(openmc::TallyResult::SUM_SQ));
+    //auto sum = xt::view(t->results_, xt::all(), _tally_index, static_cast<int>(openmc::TallyResult::SUM));
+    auto sum = get_scores(t, _tally_index,openmc::TallyResult::SUM);
+    //auto sum_sq =
+    //    xt::view(t->results_, xt::all(), _tally_index, static_cast<int>(openmc::TallyResult::SUM_SQ));
+    auto sum_sq = get_scores(t, _tally_index,openmc::TallyResult::SUM_SQ);
 
     auto rel_err = _openmc_problem->relativeError(sum, sum_sq, t->n_realizations_);
     for (int i = 0; i < t->n_filter_bins(); ++i)

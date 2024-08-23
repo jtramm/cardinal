@@ -151,10 +151,10 @@ OpenMCProblemBase::OpenMCProblemBase(const InputParameters & params)
 
   _n_cell_digits = std::to_string(openmc::model::cells.size()).length();
 
-  if (openmc::settings::libmesh_comm)
-    mooseWarning("libMesh communicator already set in OpenMC.");
+  //if (openmc::settings::libmesh_comm)
+  //  mooseWarning("libMesh communicator already set in OpenMC.");
 
-  openmc::settings::libmesh_comm = &_mesh.comm();
+  //openmc::settings::libmesh_comm = &_mesh.comm();
 
   if (openmc::settings::temperature_range[1] == 0.0)
     mooseWarning(
@@ -333,8 +333,9 @@ OpenMCProblemBase::writeSourceBank(const std::string & filename)
 {
   hid_t file_id = openmc::file_open(filename, 'w', true);
   openmc::write_attribute(file_id, "filetype", "source");
-  openmc::write_source_bank(file_id, openmc::simulation::source_bank,
-    openmc::simulation::work_index);
+  //openmc::write_source_bank(file_id, openmc::simulation::source_bank,
+  //  openmc::simulation::work_index);
+  openmc::write_source_bank(file_id, false);
   openmc::file_close(file_id);
 }
 
@@ -378,7 +379,7 @@ OpenMCProblemBase::isLocalElem(const Elem * elem) const
 bool
 OpenMCProblemBase::cellHasZeroInstances(const cellInfo & cell_info) const
 {
-  auto n = openmc::model::cells.at(cell_info.first)->n_instances_;
+  auto n = openmc::model::cells[cell_info.first].n_instances_;
   return !n;
 }
 
@@ -498,7 +499,7 @@ OpenMCProblemBase::printCell(const cellInfo & cell_info, const bool brief) const
   msg << std::setw(_n_cell_digits) << Moose::stringify(id) << ", instance "
       << std::setw(_n_cell_digits) << Moose::stringify(cell_info.second) << " (of "
       << std::setw(_n_cell_digits)
-      << Moose::stringify(openmc::model::cells.at(cell_info.first)->n_instances_) << ")";
+      << Moose::stringify(openmc::model::cells[cell_info.first].n_instances_) << ")";
 
   return msg.str();
 }
@@ -529,10 +530,20 @@ OpenMCProblemBase::relativeError(const xt::xtensor<double, 1> & sum,
   return rel_err;
 }
 
+
 xt::xtensor<double, 1>
 OpenMCProblemBase::tallySum(openmc::Tally * tally, const unsigned int & score) const
 {
-  return xt::view(tally->results_, xt::all(), score, static_cast<int>(openmc::TallyResult::SUM));
+  //return xt::view(tally->results_, xt::all(), score, static_cast<int>(openmc::TallyResult::SUM));
+  std::array<size_t, 3> shape = tally->results_shape();
+
+  xt::xtensor<double, 1> scores = xt::xtensor<double, 1>::from_shape({shape[0]});
+
+  for (size_t i = 0; i < shape[0]; ++i) {
+    scores[i] = *tally->results(i, score, openmc::TallyResult::SUM);
+  }
+
+  return scores;
 }
 
 double
@@ -667,19 +678,22 @@ OpenMCProblemBase::cellIsVoid(const cellInfo & cell_info) const
 void
 OpenMCProblemBase::geometryType(bool & has_csg_universe, bool & has_dag_universe) const
 {
-  has_csg_universe = false;
+  has_csg_universe = true;
   has_dag_universe = false;
 
+  // As the offloading version doesn't have DAGMC, no need for this check
+  /*
   // Loop over universes and check if type is DAGMC
   for (const auto& universe: openmc::model::universes)
   {
-    if (universe->geom_type() == openmc::GeometryType::DAG)
+    if (universe.geom_type() == openmc::GeometryType::DAG)
       has_dag_universe = true;
-    else if (universe->geom_type() == openmc::GeometryType::CSG)
+    else if (universe.geom_type() == openmc::GeometryType::CSG)
       has_csg_universe = true;
     else
       mooseError("Unhandled GeometryType enum!");
   }
+  */
 }
 
 long unsigned int
@@ -687,7 +701,7 @@ OpenMCProblemBase::numCells() const
 {
   long unsigned int n_openmc_cells = 0;
   for (const auto & c : openmc::model::cells)
-    n_openmc_cells += c->n_instances_;
+    n_openmc_cells += c.n_instances_;
 
   return n_openmc_cells;
 }

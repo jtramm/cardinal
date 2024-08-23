@@ -40,7 +40,8 @@
 #include "openmc/source.h"
 #include "openmc/state_point.h"
 #include "openmc/tallies/tally.h"
-#include "openmc/tallies/filter_cell_instance.h"
+//#include "openmc/tallies/filter_cell_instance.h"
+#include "openmc/tallies/filter.h"
 #include "xtensor/xview.hpp"
 
 /**

@@ -25,7 +25,10 @@
 /// Tally includes.
 #include "TallyBase.h"
 
-#include "openmc/tallies/filter_mesh.h"
+//#include "openmc/tallies/filter_mesh.h"
+#include "openmc/tallies/filter.h"
+#include "openmc/vector.h"
+
 
 #ifdef ENABLE_DAGMC
 #include "MoabSkinner.h"
@@ -189,7 +192,7 @@ public:
    * Type definition for cells contained within a parent cell; the first value
    * is the cell index, while the second is the set of cell instances
    */
-  typedef std::unordered_map<int32_t, std::vector<int32_t>> containedCells;
+  typedef std::unordered_map<int32_t, openmc::vector<int32_t>> containedCells;
 
   /**
    * Get the cell index from the element ID; will return UNMAPPED for unmapped elements

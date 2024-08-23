@@ -36,7 +36,7 @@
 #include "openmc/summary.h"
 #include "openmc/tallies/trigger.h"
 #include "openmc/volume_calc.h"
-#include "openmc/universe.h"
+#include "openmc/cell.h"
 #include "xtensor/xarray.hpp"
 
 registerMooseObject("CardinalApp", OpenMCCellAverageProblem);
@@ -1398,13 +1398,13 @@ OpenMCCellAverageProblem::setContainedCells(const cellInfo & cell_info,
   openmc::Position p{hint(0), hint(1), hint(2)};
 
   const auto & cell = openmc::model::cells[cell_info.first];
-  if (cell->type_ == openmc::Fill::MATERIAL)
+  if (cell.type_ == openmc::Fill::MATERIAL)
   {
-    std::vector<int32_t> instances = {cell_info.second};
+    openmc::vector<int32_t> instances = {cell_info.second};
     contained_cells[cell_info.first] = instances;
   }
   else
-    contained_cells = cell->get_contained_cells(cell_info.second, &p);
+    contained_cells = cell.get_contained_cells(cell_info.second, &p);
 
   map[cell_info] = contained_cells;
 }
@@ -1486,7 +1486,7 @@ OpenMCCellAverageProblem::cacheContainedCells()
           const auto & instances = f.second;
           const auto & new_instances = second_cell_cc[id];
 
-          std::vector<int32_t> offsets;
+          openmc::vector<int32_t> offsets;
           for (unsigned int i = 0; i < instances.size(); ++i)
             offsets.push_back(new_instances[i] - instances[i]);
 
@@ -1610,14 +1610,14 @@ unsigned int
 OpenMCCellAverageProblem::getCellLevel(const Point & c) const
 {
   unsigned int level = _cell_level;
-  if (_cell_level > _particle.n_coord() - 1)
+  if (_cell_level > _particle.n_coord_ - 1)
   {
     if (isParamValid("lowest_cell_level"))
-      level = _particle.n_coord() - 1;
+      level = _particle.n_coord_ - 1;
     else
       mooseError("Requested coordinate level of " + Moose::stringify(_cell_level) +
                  " exceeds number of nested coordinate levels at " + printPoint(c) + ": " +
-                 Moose::stringify(_particle.n_coord()));
+                 Moose::stringify(_particle.n_coord_));
   }
 
   return level;
@@ -1709,12 +1709,12 @@ OpenMCCellAverageProblem::mapElemsToCells()
         mooseError("Unhandled CouplingFields enum!");
     }
 
-    auto cell_index = _particle.coord(level).cell;
+    auto cell_index = _particle.coord_[level].cell;
     auto cell_instance = cell_instance_at_level(_particle, level);
 
     cellInfo cell_info = {cell_index, cell_instance};
 
-    if (openmc::model::cells[cell_index]->type_ != openmc::Fill::MATERIAL)
+    if (openmc::model::cells[cell_index].type_ != openmc::Fill::MATERIAL)
       _material_cells_only = false;
 
     // store the map of cells to elements that will be coupled via feedback or a tally
@@ -1835,6 +1835,7 @@ OpenMCCellAverageProblem::initializeTallies()
   if (_needs_global_tally)
   {
     _global_tally_index = openmc::model::tallies.size();
+    openmc::model::tallies.reserve(_global_tally_index + _global_tally_scores.size());
 
     _global_tallies.clear();
     for (unsigned int i = 0; i < _global_tally_scores.size(); ++i)
@@ -1847,6 +1848,9 @@ OpenMCCellAverageProblem::initializeTallies()
     _global_sum_tally.clear();
     _global_sum_tally.resize(_all_tally_scores.size(), 0.0);
   }
+  // Create space for local tally filters, so they don't get moved
+  // and pointers won't break.
+  openmc::model::tally_filters.reserve(openmc::model::tally_filters.size() + _local_tallies.size());
 
   // Initialize all of the [Tallies].
   for (auto & local_tally : _local_tallies)
@@ -1856,9 +1860,9 @@ OpenMCCellAverageProblem::initializeTallies()
 void
 OpenMCCellAverageProblem::latticeOuterError(const Point & c, int level) const
 {
-  const auto & cell = openmc::model::cells[_particle.coord(level).cell];
+  const auto & cell = openmc::model::cells[_particle.coord_[level].cell];
   std::stringstream msg;
-  msg << "The point " << c << " mapped to cell " << cell->id_
+  msg << "The point " << c << " mapped to cell " << cell.id_
       << " in the OpenMC model is inside a universe "
          "used as the 'outer' universe of a lattice. "
          "All cells used for mapping in lattices must be explicitly set "
@@ -1875,7 +1879,7 @@ OpenMCCellAverageProblem::latticeOuterCheck(const Point & c, int level) const
 {
   for (int i = 0; i <= level; ++i)
   {
-    const auto & coord = _particle.coord(i);
+    const auto & coord = _particle.coord_[i];
 
     // if there is no lattice at this level, move on
     if (coord.lattice == openmc::C_NONE)
@@ -1884,15 +1888,16 @@ OpenMCCellAverageProblem::latticeOuterCheck(const Point & c, int level) const
     const auto & lat = openmc::model::lattices[coord.lattice];
 
     // if the lattice's outer universe isn't set, move on
-    if (lat->outer_ == openmc::NO_OUTER_UNIVERSE)
+    if (lat.outer_ == openmc::NO_OUTER_UNIVERSE)
       continue;
 
-    if (coord.universe != lat->outer_)
+    if (coord.universe != lat.outer_)
       continue;
 
     // move on if the lattice indices are valid (position is in the set of explicitly defined
     // universes)
-    if (lat->are_valid_indices(coord.lattice_i))
+    int i_xyz[3] {coord.lattice_x, coord.lattice_y, coord.lattice_z};
+    if (lat.are_valid_indices(i_xyz))
       continue;
 
     // if we get here, the mapping is occurring in a universe that is not explicitly defined in the
@@ -2855,7 +2860,7 @@ OpenMCCellAverageProblem::cellHasIdenticalFill(const cellInfo & cell_info) const
 {
   // material cells are discounted as identical fill
   const auto & cell = openmc::model::cells[cell_info.first];
-  if (!_has_identical_cell_fills || cell->type_ == openmc::Fill::MATERIAL)
+  if (!_has_identical_cell_fills || cell.type_ == openmc::Fill::MATERIAL)
     return false;
 
   return cellMapsToSubdomain(cell_info, _identical_cell_fill_blocks);
@@ -2878,7 +2883,7 @@ OpenMCCellAverageProblem::shiftCellInstances(const cellInfo & cell_info) const
     auto n_instances = instances.size();
     const auto & shifts = _instance_offsets.at(index);
 
-    std::vector<int32_t> shifted_instances;
+    openmc::vector<int32_t> shifted_instances;
     for (unsigned int inst = 0; inst < n_instances; ++inst)
       shifted_instances.push_back(instances[inst] + offset * shifts[inst]);
 

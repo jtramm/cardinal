@@ -5,7 +5,7 @@ endef
 
 # Set default values for all third party dependencies
 NEKRS_DIR           ?= $(CONTRIB_DIR)/nekRS
-OPENMC_DIR          ?= $(CONTRIB_DIR)/openmc
+OPENMC_DIR          ?= /home/jtramm/openmc_offload/openmc
 DAGMC_DIR           ?= $(CONTRIB_DIR)/DAGMC
 MOAB_DIR            ?= $(CONTRIB_DIR)/moab
 GRIFFIN_DIR         ?= $(CONTRIB_DIR)/griffin

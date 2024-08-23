@@ -69,7 +69,7 @@ OpenMCNuclideDensities::setValue()
 
   try
   {
-    openmc::model::materials[_material_index]->set_densities(_names, _densities);
+    openmc::model::materials[_material_index].set_densities(_names, _densities);
   }
   catch (const std::exception & e)
   {

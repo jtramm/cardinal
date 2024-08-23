@@ -45,7 +45,7 @@ ENABLE_OPENMC       ?= yes
 ENABLE_DAGMC        ?= no
 
 # What GPU backends to enable for Nek (if any)
-OCCA_CUDA_ENABLED=0
+OCCA_CUDA_ENABLED=1
 OCCA_HIP_ENABLED=0
 OCCA_OPENCL_ENABLED=0
 
@@ -166,11 +166,17 @@ NEKRS_LIB := $(NEKRS_LIBDIR)/libnekrs.so
 # This needs to be exported
 export NEKRS_HOME=$(CARDINAL_DIR)
 
-OPENMC_BUILDDIR := $(CARDINAL_DIR)/build/openmc
-OPENMC_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+OPENMC_BUILDDIR := /home/jtramm/openmc_offload/openmc/build/
+OPENMC_INSTALL_DIR := /home/jtramm/openmc_offload/openmc/build/install
 OPENMC_INCLUDES := -I$(OPENMC_INSTALL_DIR)/include
-OPENMC_LIBDIR := $(OPENMC_INSTALL_DIR)/lib
+OPENMC_LIBDIR := $(OPENMC_INSTALL_DIR)/lib64
 OPENMC_LIB := $(OPENMC_LIBDIR)/libopenmc.so
+
+#OPENMC_BUILDDIR := $(CARDINAL_DIR)/build/openmc
+#OPENMC_INSTALL_DIR := $(CONTRIB_INSTALL_DIR)
+#OPENMC_INCLUDES := -I$(OPENMC_INSTALL_DIR)/include
+#OPENMC_LIBDIR := $(OPENMC_INSTALL_DIR)/lib
+#OPENMC_LIB := $(OPENMC_LIBDIR)/libopenmc.so
 
 # This is used in $(FRAMEWORK_DIR)/build.mk
 HDF5_INCLUDES       := -I$(HDF5_INCLUDE_DIR) -I$(HDF5_ROOT)/include

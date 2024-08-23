@@ -89,8 +89,9 @@ CellTally::spatialFilter()
   for (const auto & c : tally_cells)
     cells.push_back(
         {gsl::narrow_cast<gsl::index>(c.first), gsl::narrow_cast<gsl::index>(c.second)});
-
-  _cell_filter = dynamic_cast<openmc::CellInstanceFilter *>(openmc::Filter::create("cellinstance"));
+  openmc::model::tally_filters.emplace_back("cellinstance");
+  //_cell_filter = dynamic_cast<openmc::Filter *>(openmc::Filter::create("cellinstance"));
+  _cell_filter = &openmc::model::tally_filters.back();
   _cell_filter->set_cell_instances(cells);
 
   return std::make_pair(openmc::model::tally_filters.size(), _cell_filter);
