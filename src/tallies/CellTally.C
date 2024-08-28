@@ -83,13 +83,14 @@ CellTally::spatialFilter()
   if (_openmc_problem.cellToElem().size() == 0)
     mooseError("Did not find any overlap between MOOSE elements and OpenMC cells for "
                "the specified blocks!");
-
+  std::cout << "Attempting to make a cellinstance filter" << std::endl;
   auto tally_cells = getTallyCells();
   std::vector<openmc::CellInstance> cells;
   for (const auto & c : tally_cells)
     cells.push_back(
         {gsl::narrow_cast<gsl::index>(c.first), gsl::narrow_cast<gsl::index>(c.second)});
-  openmc::model::tally_filters.emplace_back("cellinstance");
+  int idx = openmc::model::tally_filters.size();
+  openmc::model::tally_filters.emplace_back("cellinstance", idx);
   //_cell_filter = dynamic_cast<openmc::Filter *>(openmc::Filter::create("cellinstance"));
   _cell_filter = &openmc::model::tally_filters.back();
   _cell_filter->set_cell_instances(cells);

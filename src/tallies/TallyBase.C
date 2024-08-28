@@ -206,6 +206,9 @@ TallyBase::initializeTally()
   // TODO: Append to this to add other filters
   std::vector<openmc::Filter *> filters = {spatial_filter};
 
+  _console << "There are currently " << openmc::model::tallies.size() << " tallies in the model. Adding another..."
+             << std::endl;
+
   // Create the tally, assign the required filters and apply the triggers.
   _local_tally_index = openmc::model::tallies.size();
   _local_tally = openmc::Tally::create();
@@ -213,6 +216,8 @@ TallyBase::initializeTally()
   _local_tally->estimator_ = _estimator;
   _local_tally->set_filters(filters);
   applyTriggersToLocalTally(_local_tally);
+    _console << "Now there are are " << openmc::model::tallies.size() << " tallies in the model."
+             << std::endl;
 }
 
 void

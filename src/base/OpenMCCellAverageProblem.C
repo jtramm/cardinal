@@ -758,7 +758,7 @@ void
 OpenMCCellAverageProblem::computeCellMappedVolumes()
 {
   std::vector<Real> volumes;
-
+  //std::cout << "Length of local cell to elem vector: " << _local_cell_to_elem.size() << std::endl;
   for (const auto & c : _local_cell_to_elem)
   {
     Real vol = 0.0;
@@ -767,6 +767,7 @@ OpenMCCellAverageProblem::computeCellMappedVolumes()
       // we are looping over local elements, so no need to check for nullptr
       const auto * elem = _mesh.queryElemPtr(globalElemID(e));
       vol += elem->volume();
+      // " << vol << std::endl;
     }
 
     volumes.push_back(vol);
@@ -1660,10 +1661,12 @@ OpenMCCellAverageProblem::mapElemsToCells()
     // if we didn't find an OpenMC cell here, then we certainly have an uncoupled region
     if (error)
     {
+      //std::cout << "UNCOUPLED region detected!" << std::endl;
       _uncoupled_volume += element_volume;
       _n_mapped_none_elems++;
       continue;
     }
+    //std::cout << "Coupled region detected!" << std::endl;
 
     // next, see what type of data is to be sent into OpenMC (to further classify
     // the type of couling)
@@ -1834,8 +1837,12 @@ OpenMCCellAverageProblem::initializeTallies()
   // same estimator as the local tally
   if (_needs_global_tally)
   {
+    _console << "There are currently " << openmc::model::tallies.size() << " tallies in the model."
+             << std::endl;
+    _console << "Allocating space for " << _global_tally_scores.size() << " more tallies."
+             << std::endl;
     _global_tally_index = openmc::model::tallies.size();
-    openmc::model::tallies.reserve(_global_tally_index + _global_tally_scores.size());
+    openmc::model::tallies.reserve(_global_tally_index + _global_tally_scores.size() + _local_tallies.size());
 
     _global_tallies.clear();
     for (unsigned int i = 0; i < _global_tally_scores.size(); ++i)
@@ -1843,6 +1850,7 @@ OpenMCCellAverageProblem::initializeTallies()
       _global_tallies.push_back(openmc::Tally::create());
       _global_tallies[i]->set_scores(_global_tally_scores[i]);
       _global_tallies[i]->estimator_ = _global_tally_estimators[i];
+      _console << "Generated tally " << i << " with id of " << _global_tallies[i]->id_ << " and index_ of " << _global_tallies[i]->index_ << std::endl;
     }
 
     _global_sum_tally.clear();
@@ -1911,11 +1919,20 @@ OpenMCCellAverageProblem::findCell(const Point & point)
 {
   _particle.clear();
   _particle.u() = {0., 0., 1.};
-
   Point pt = transformPointToOpenMC(point);
 
   _particle.r() = {pt(0), pt(1), pt(2)};
-  return !openmc::exhaustive_find_cell(_particle);
+  _particle.r_last_ = {pt(0), pt(1), pt(2)};
+  _particle.r_last_current_ = {pt(0), pt(1), pt(2)};
+
+  _particle.r().x = pt(0);
+  _particle.r().y = pt(1);
+  _particle.r().z = pt(2);
+
+
+  bool did_find = openmc::exhaustive_find_cell(_particle);
+  return !did_find;
+  //return !openmc::exhaustive_find_cell(_particle);
 }
 
 void
@@ -2440,6 +2457,10 @@ OpenMCCellAverageProblem::syncSolutions(ExternalProblem::Direction direction)
               continue;
 
             auto index = loc - _global_tally_scores[i].begin();
+            std::cout << std::endl;
+            _console << std::endl;
+            _console << "accessing tally index " << i << " with id " << _global_tallies[i]->id_
+                     << std::endl;
             _global_sum_tally[global_score] = tallySumAcrossBins({_global_tallies[i]}, index);
           }
         }

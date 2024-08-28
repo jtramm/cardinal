@@ -536,8 +536,10 @@ OpenMCProblemBase::tallySum(openmc::Tally * tally, const unsigned int & score) c
 {
   //return xt::view(tally->results_, xt::all(), score, static_cast<int>(openmc::TallyResult::SUM));
   std::array<size_t, 3> shape = tally->results_shape();
-
+  printf("Summing tally with shape %lu %lu %lu\n\n", shape[0], shape[1], shape[2]);
+  std::cout << "Summing tally with shape: " << shape[0] << " " << shape[1] << " " << shape[2] << std::endl;
   xt::xtensor<double, 1> scores = xt::xtensor<double, 1>::from_shape({shape[0]});
+  std::cout << "score = " << score << " type = " << static_cast<int>(openmc::TallyResult::SUM) << std::endl;
 
   for (size_t i = 0; i < shape[0]; ++i) {
     scores[i] = *tally->results(i, score, openmc::TallyResult::SUM);
